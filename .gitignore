@@ -1,0 +1,9 @@
+# Secrets and deployment configuration
+server/.env
+server/env
+*.pem
+*.key
+
+# Dependencies and generated client files
+**/node_modules/
+client/dist/
