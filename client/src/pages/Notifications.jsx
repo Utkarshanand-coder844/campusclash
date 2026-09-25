@@ -58,11 +58,46 @@ export const Notifications = ({ onNavigate }) => {
             <time>{new Date(item.created_at).toLocaleString()}</time>
           </div>
           <h2>{item.title}</h2>
-          <p>{item.message}</p>
+          <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {item.message?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+              /(https?:\/\/[^\s]+)/.test(part) ? (
+                <a key={i} href={part} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>
+                  {part}
+                </a>
+              ) : part
+            )}
+          </p>
+          {item.attachments?.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem', marginBottom: '0.5rem' }}>
+              {item.attachments.map((attachment) => (
+                <a
+                  className="btn btn-secondary btn-sm"
+                  key={attachment.id || attachment.url}
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  {({ poster: '🖼 Poster', rules: '📄 Rules', venue_map: '🗺 Venue map', schedule: '📅 Schedule' }[attachment.type] || '📎 Link')} · {attachment.label || 'View link'} ↗
+                </a>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
             {!item.read_at && (
               <button className="btn btn-secondary btn-sm" onClick={() => markRead(item.id)}>
                 Mark as read
+              </button>
+            )}
+            {item.announcement_id && onNavigate && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  if (!item.read_at) markRead(item.id);
+                  onNavigate('events');
+                }}
+              >
+                📣 View in Events
               </button>
             )}
             {item.type === 'message' && onNavigate && (

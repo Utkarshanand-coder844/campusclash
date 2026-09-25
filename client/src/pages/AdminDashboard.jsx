@@ -284,11 +284,20 @@ export const AdminDashboard = ({ onNavigate }) => {
     if (!announcementTitle.trim() || !announcementMessage.trim()) { setErrorMessage('An event title and message are required.'); return; }
     setPostingAnnouncement(true);
     try {
-      const response = await fetch(editingAnnouncementId ? `/api/admin/announcements/${editingAnnouncementId}` : '/api/admin/announcements', { method: editingAnnouncementId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: announcementTitle, message: announcementMessage, category: announcementCategory, event_at: announcementDate || null, is_pinned: announcementPinned, campus: announcementCampus, attachments: announcementAttachments }) });
+      let finalAttachments = [...announcementAttachments];
+      if (attachmentUrl && attachmentUrl.trim()) {
+        let url = attachmentUrl.trim();
+        if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+        const label = attachmentLabel.trim() || 'Event Link';
+        if (!finalAttachments.some(a => a.url === url)) {
+          finalAttachments.push({ label, url, type: attachmentType || 'other' });
+        }
+      }
+      const response = await fetch(editingAnnouncementId ? `/api/admin/announcements/${editingAnnouncementId}` : '/api/admin/announcements', { method: editingAnnouncementId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: announcementTitle, message: announcementMessage, category: announcementCategory, event_at: announcementDate || null, is_pinned: announcementPinned, campus: announcementCampus, attachments: finalAttachments }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to post announcement');
       showToast(editingAnnouncementId ? 'Announcement updated.' : 'Announcement posted to the public Events feed.');
-      setAnnouncementTitle(''); setAnnouncementMessage(''); setAnnouncementDate(''); setAnnouncementPinned(false); setAnnouncementCampus('all'); setAnnouncementAttachments([]); setEditingAnnouncementId(null); fetchData();
+      setAnnouncementTitle(''); setAnnouncementMessage(''); setAnnouncementDate(''); setAnnouncementPinned(false); setAnnouncementCampus('all'); setAnnouncementAttachments([]); setAttachmentLabel(''); setAttachmentUrl(''); setEditingAnnouncementId(null); fetchData();
     } catch (err) { setErrorMessage(err.message); }
     finally { setPostingAnnouncement(false); }
   };
@@ -467,7 +476,7 @@ export const AdminDashboard = ({ onNavigate }) => {
           <div className="form-group"><label className="form-label">Message</label><textarea maxLength="2000" className="form-input no-icon" style={{ minHeight: '110px', resize: 'vertical' }} placeholder="Include teams, venue, reporting time, or other important information." value={announcementMessage} onChange={(e) => setAnnouncementMessage(e.target.value)} required /></div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--text-secondary)' }}><input type="checkbox" checked={announcementPinned} onChange={(e) => setAnnouncementPinned(e.target.checked)} /> Pin this update at the top of Events</label>
           <div className="form-grid"><div className="form-group"><label className="form-label">Attachment label</label><input className="form-input no-icon" value={attachmentLabel} onChange={(e) => setAttachmentLabel(e.target.value)} placeholder="Tournament rules PDF" /></div><div className="form-group"><label className="form-label">Attachment URL</label><input className="form-input no-icon" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} placeholder="https://…" /></div></div>
-          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginBottom: '1rem' }}><select className="form-select no-icon" style={{ maxWidth: '160px' }} value={attachmentType} onChange={(e) => setAttachmentType(e.target.value)}><option value="poster">Poster</option><option value="rules">Rules PDF</option><option value="venue_map">Venue map</option><option value="schedule">Schedule</option></select><button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (attachmentLabel.trim() && /^https?:\/\//i.test(attachmentUrl.trim())) { setAnnouncementAttachments(items => [...items, { label: attachmentLabel.trim(), url: attachmentUrl.trim(), type: attachmentType }]); setAttachmentLabel(''); setAttachmentUrl(''); } }}>Add attachment</button></div>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginBottom: '1rem' }}><select className="form-select no-icon" style={{ maxWidth: '160px' }} value={attachmentType} onChange={(e) => setAttachmentType(e.target.value)}><option value="poster">Poster</option><option value="rules">Rules PDF</option><option value="venue_map">Venue map</option><option value="schedule">Schedule</option><option value="other">Link / Other</option></select><button type="button" className="btn btn-secondary btn-sm" onClick={() => { if (attachmentUrl.trim()) { let url = attachmentUrl.trim(); if (!/^https?:\/\//i.test(url)) url = `https://${url}`; const label = attachmentLabel.trim() || 'Event Link'; setAnnouncementAttachments(items => [...items, { label, url, type: attachmentType || 'other' }]); setAttachmentLabel(''); setAttachmentUrl(''); } }}>Add attachment</button></div>
           {announcementAttachments.map((attachment, index) => <div key={`${attachment.url}-${index}`} style={{ marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>📎 {attachment.label} <button type="button" className="btn btn-danger btn-sm" onClick={() => setAnnouncementAttachments(items => items.filter((_, i) => i !== index))}>Remove</button></div>)}
           <button className="btn btn-primary" style={{ width: 'auto' }} disabled={postingAnnouncement}>{postingAnnouncement ? 'Saving…' : editingAnnouncementId ? 'Save changes' : 'Post to Events'}</button>{editingAnnouncementId && <button type="button" className="btn btn-secondary" style={{ width: 'auto', marginLeft: '0.6rem' }} onClick={cancelEditingAnnouncement}>Cancel</button>}
         </form>

@@ -17,8 +17,19 @@ const audit = (req, action, entityType, entityId, details) =>
 const cleanAttachments = (value) => {
   if (!Array.isArray(value) || value.length > 8) return null;
   const allowed = ['poster', 'rules', 'venue_map', 'schedule', 'other'];
-  const attachments = value.map(({ label, url, type }) => ({ label: typeof label === 'string' ? label.trim() : '', url: typeof url === 'string' ? url.trim() : '', type: allowed.includes(type) ? type : 'other' }));
-  if (attachments.some(item => !item.label || item.label.length > 120 || !/^https?:\/\//i.test(item.url))) return null;
+  const attachments = value.map(({ label, url, type }) => {
+    let cleanUrl = typeof url === 'string' ? url.trim() : '';
+    if (cleanUrl && !/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = `https://${cleanUrl}`;
+    }
+    const cleanLabel = typeof label === 'string' && label.trim() ? label.trim().slice(0, 120) : 'Event Link';
+    return {
+      label: cleanLabel,
+      url: cleanUrl,
+      type: allowed.includes(type) ? type : 'other'
+    };
+  });
+  if (attachments.some(item => !item.url || !/^https?:\/\//i.test(item.url))) return null;
   return attachments;
 };
 

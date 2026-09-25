@@ -38,7 +38,16 @@ export const Events = () => {
     {loading ? <div className="auth-card">Loading event updates…</div> : announcements.length === 0 ? <div className="auth-card" style={{ textAlign: 'center' }}>No announcements have been posted yet.</div> : <div className="event-feed">
       {announcements.map((item) => <article className="event-card" key={item.id}>
         <div className="event-card-top"><span className={`role-pill ${item.category === 'match' ? 'player' : 'admin'}`}>{categoryLabel[item.category] || '📣 Notice'}</span><span>{item.is_pinned ? '📌 Pinned' : ''} {item.event_at && <time>🗓️ {new Date(item.event_at).toLocaleString()}</time>}</span></div>
-        <h2>{item.title}</h2><p>{item.message}</p>
+        <h2>{item.title}</h2>
+        <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {item.message?.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+            /(https?:\/\/[^\s]+)/.test(part) ? (
+              <a key={i} href={part} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>
+                {part}
+              </a>
+            ) : part
+          )}
+        </p>
         {item.attachments?.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.85rem' }}>{item.attachments.map((attachment) => <a className="btn btn-secondary btn-sm" key={attachment.id || attachment.url} href={attachment.url} target="_blank" rel="noreferrer">{({ poster: '🖼 Poster', rules: '📄 Rules', venue_map: '🗺 Venue map', schedule: '📅 Schedule' }[attachment.type] || '📎 Attachment')} · {attachment.label}</a>)}</div>}
         <small>Posted {new Date(item.created_at).toLocaleString()}{item.posted_by ? ` by ${item.posted_by}` : ''}{item.campus && item.campus !== 'all' ? ` · ${item.campus}` : ''}</small>
       </article>)}</div>}
