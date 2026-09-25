@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import './env.js';
 import { UserModel } from '../models/userModel.js';
 
+import { isOriginAllowed } from './cors.js';
+
 let io = null;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured before starting the server.');
@@ -12,10 +14,12 @@ if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured before starting 
  * Call this once from server.js, right after creating the http server.
  */
 export const initSocket = (httpServer) => {
-  const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:3000,http://localhost:5173').split(',').map(origin => origin.trim());
   io = new Server(httpServer, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (!origin || isOriginAllowed(origin)) return callback(null, true);
+        return callback(new Error('Origin not allowed'), false);
+      },
       methods: ['GET', 'POST']
     }
   });

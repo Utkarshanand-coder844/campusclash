@@ -15,6 +15,7 @@ import playerSportRoutes from './routes/playerSportRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import { initDb } from './config/db.js';
 import { initSocket } from './config/socket.js';
+import { corsOptions } from './config/cors.js';
 
 if (process.env.NODE_ENV === 'production') {
   const missing = ['DATABASE_URL', 'JWT_SECRET', 'ADMIN_SIGNUP_CODE', 'FRONTEND_ORIGIN', 'FRONTEND_URL', 'RESEND_API_KEY', 'PASSWORD_RESET_EMAIL_FROM']
@@ -37,12 +38,7 @@ if (process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
 initSocket(httpServer);
 
 // Middlewares
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:3000,http://localhost:5173').split(',').map(origin => origin.trim());
-app.use(cors({
-  origin: (origin, callback) => (!origin || allowedOrigins.includes(origin) ? callback(null, true) : callback(new Error('Origin not allowed'))),
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
