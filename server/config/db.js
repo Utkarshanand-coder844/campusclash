@@ -121,8 +121,10 @@ export const initDb = async () => {
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
       ALTER TABLE teams ADD COLUMN IF NOT EXISTS sport VARCHAR(60) NOT NULL DEFAULT 'Football';
+      ALTER TABLE teams ADD COLUMN IF NOT EXISTS campus VARCHAR(100) DEFAULT 'Main Campus';
       ALTER TABLE teams DROP CONSTRAINT IF EXISTS teams_owner_user_id_key;
       CREATE UNIQUE INDEX IF NOT EXISTS teams_owner_sport_unique ON teams (owner_user_id, sport);
+      CREATE INDEX IF NOT EXISTS idx_teams_campus_sport ON teams(campus, sport);
 
       CREATE TABLE IF NOT EXISTS team_members (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -232,7 +234,54 @@ export const initDb = async () => {
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE announcements ADD COLUMN IF NOT EXISTS campus VARCHAR(100) NOT NULL DEFAULT 'all';
       CREATE INDEX IF NOT EXISTS idx_announcements_event_at ON announcements(event_at);
+      CREATE INDEX IF NOT EXISTS idx_announcements_campus ON announcements(campus);
+
+      CREATE TABLE IF NOT EXISTS event_attachments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          announcement_id UUID NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+          label VARCHAR(120) NOT NULL,
+          url TEXT NOT NULL,
+          attachment_type VARCHAR(20) NOT NULL CHECK (attachment_type IN ('poster', 'rules', 'venue_map', 'schedule', 'other')),
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS player_availability (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          sport VARCHAR(60) NOT NULL,
+          match_id UUID REFERENCES matches(id) ON DELETE CASCADE,
+          status VARCHAR(15) NOT NULL CHECK (status IN ('available', 'maybe', 'unavailable')),
+          note VARCHAR(300),
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          CONSTRAINT unique_player_match_availability UNIQUE (user_id, sport, match_id)
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS unique_player_sport_general_availability ON player_availability (user_id, sport) WHERE match_id IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_availability_user_sport ON player_availability(user_id, sport);
+
+      CREATE TABLE IF NOT EXISTS team_requests (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+          player_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          request_type VARCHAR(10) NOT NULL CHECK (request_type IN ('join', 'leave')),
+          status VARCHAR(12) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined', 'cancelled')),
+          message VARCHAR(500),
+          reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          reviewed_at TIMESTAMPTZ,
+          CONSTRAINT unique_pending_team_request UNIQUE (team_id, player_user_id, request_type, status)
+      );
+      CREATE INDEX IF NOT EXISTS idx_team_requests_team_status ON team_requests(team_id, status);
+
+      CREATE TABLE IF NOT EXISTS team_admin_removal_votes (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+          target_admin_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          voter_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          CONSTRAINT unique_team_admin_removal_vote UNIQUE (team_id, target_admin_id, voter_user_id)
+      );
 
       CREATE TABLE IF NOT EXISTS notifications (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
