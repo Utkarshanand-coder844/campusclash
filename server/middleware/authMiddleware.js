@@ -64,3 +64,35 @@ export const requireAdmin = (req, res, next) => {
 
   next();
 };
+
+/**
+ * Middleware: optionalAuth
+ * Like authenticateToken but does NOT block if no token is supplied.
+ * Attaches decoded user to req.user when a valid token is present;
+ * otherwise leaves req.user undefined and calls next().
+ * Use on public routes that have extra features when a user is logged in.
+ */
+export const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-authorization'] || req.headers['x-access-token'];
+  let token = null;
+
+  if (authHeader && typeof authHeader === 'string') {
+    token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : authHeader.trim();
+  }
+  if (!token && req.query && typeof req.query.token === 'string') {
+    token = req.query.token.trim();
+  }
+
+  if (!token) return next(); // Guest — proceed without blocking
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (!err && decoded) {
+      req.user = {
+        id: decoded.id || decoded.userId,
+        userId: decoded.userId || decoded.id,
+        role: decoded.role
+      };
+    }
+    next(); // Always proceed, even if token is invalid/expired
+  });
+};

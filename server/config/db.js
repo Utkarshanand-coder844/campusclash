@@ -868,7 +868,9 @@ export const query = async (text, params = []) => {
   }
 
   if (normalizedText.includes('insert into teams')) {
-    const [name, owner_user_id, sport, locked] = params;
+    // params from teamModel.createTeam: [name, owner_user_id, sport, campus]
+    // locked is always FALSE (literal) in the SQL, not a param
+    const [name, owner_user_id, sport, campus] = params;
     const existing = memoryStore.teams.find(t => t.owner_user_id === owner_user_id && t.sport === sport);
     if (existing) {
       const error = new Error('You already own a team for this sport.');
@@ -881,7 +883,8 @@ export const query = async (text, params = []) => {
       name,
       owner_user_id,
       sport: sport || 'Football',
-      locked: Boolean(locked),
+      campus: campus || 'Main Campus',
+      locked: false, // always starts unlocked
       created_at: new Date().toISOString()
     };
     memoryStore.teams.push(newTeam);
@@ -889,12 +892,56 @@ export const query = async (text, params = []) => {
   }
 
   if (normalizedText.includes('update teams')) {
+    // Handle: UPDATE teams SET locked = $1 WHERE id = $2  (lock toggle)
+    // Handle: UPDATE teams SET name = $1, locked = $2 WHERE id = $3 (update)
+    // Handle: UPDATE teams SET owner_user_id = $1 WHERE id = $2 AND owner_user_id = $3 (transfer)
+    if (normalizedText.includes('owner_user_id =') && params.length === 3) {
+      const [newOwnerId, teamId, currentOwnerId] = params;
+      const team = memoryStore.teams.find(t => t.id === teamId && t.owner_user_id === currentOwnerId);
+      if (team) {
+        team.owner_user_id = newOwnerId;
+        return { rows: [{ ...team }] };
+      }
+      return { rows: [] };
+    }
+    if (params.length === 2) {
+      // SET locked=$1 WHERE id=$2
+      const [locked, id] = params;
+      const team = memoryStore.teams.find(t => t.id === id);
+      if (team) {
+        team.locked = Boolean(locked);
+        return { rows: [{ ...team }] };
+      }
+      return { rows: [] };
+    }
     const [name, locked, id] = params;
     const team = memoryStore.teams.find(t => t.id === id);
     if (team) {
       if (name !== undefined && name !== null) team.name = name;
       if (locked !== undefined && locked !== null) team.locked = Boolean(locked);
       return { rows: [{ ...team }] };
+    }
+    return { rows: [] };
+  }
+
+  // --- TOURNAMENT SETTINGS ---
+  if (normalizedText.includes('tournament_settings')) {
+    if (normalizedText.includes('select') || normalizedText.includes('from tournament_settings')) {
+      // SELECT value FROM tournament_settings WHERE key = $1
+      const key = params[0];
+      if (key === 'tournament_started') {
+        return { rows: [{ key, value: memoryStore.settings.tournament_started }] };
+      }
+      return { rows: [] };
+    }
+    if (normalizedText.includes('insert into tournament_settings')) {
+      // UPSERT tournament_settings
+      const key = params[0] || 'tournament_started';
+      const value = Boolean(params[1]);
+      if (key === 'tournament_started') {
+        memoryStore.settings.tournament_started = value;
+      }
+      return { rows: [{ key, value }] };
     }
     return { rows: [] };
   }

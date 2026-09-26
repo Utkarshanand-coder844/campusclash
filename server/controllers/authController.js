@@ -19,10 +19,14 @@ const sendResetEmail = async ({ email, name, resetUrl }) => {
   // in the deployment environment; never commit them to the repository.
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.PASSWORD_RESET_EMAIL_FROM;
-  if (!apiKey || !from) {
+
+  // In local / test environments a placeholder key is acceptable — just log
+  // the link so developers can test the reset flow without real credentials.
+  const isDummyKey = !apiKey || apiKey.startsWith('re_xxxxxxxxx') || apiKey === 'your_resend_api_key';
+  if (!apiKey || !from || isDummyKey) {
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`Password reset link for ${email}: ${resetUrl}`);
-      return;
+      console.log(`[DEV] Password reset link for ${email}: ${resetUrl}`);
+      return; // Succeed silently in dev — no real email sent
     }
     throw new Error('Password reset email is not configured');
   }
@@ -36,8 +40,15 @@ const sendResetEmail = async ({ email, name, resetUrl }) => {
       text: `Hi ${name},\n\nUse this link to reset your Playr-Pool password. It expires in one hour:\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`
     })
   });
-  if (!response.ok) throw new Error('Email provider rejected the password-reset message');
+  if (!response.ok) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[DEV] Email provider rejected password-reset message (status ${response.status}). Reset URL: ${resetUrl}`);
+      return; // Don't block the flow in dev
+    }
+    throw new Error('Email provider rejected the password-reset message');
+  }
 };
+
 
 const sendPasswordChangedEmail = async ({ email, name }) => {
   const apiKey = process.env.RESEND_API_KEY;
