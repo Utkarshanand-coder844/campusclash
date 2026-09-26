@@ -702,6 +702,28 @@ export const query = async (text, params = []) => {
     return { rows: users.filter(user => !normalizedText.includes('id <> $1') || user.id !== params[0]).map(user => ({ ...user })) };
   }
 
+  if (normalizedText.includes('delete from users')) {
+    const userId = params[0];
+    const beforeCount = memoryStore.users.length;
+    memoryStore.users = memoryStore.users.filter(u => u.id !== userId);
+    memoryStore.player_sports = memoryStore.player_sports.filter(u => u.user_id !== userId);
+    memoryStore.player_sport_profiles = memoryStore.player_sport_profiles.filter(u => u.user_id !== userId);
+    memoryStore.team_members = memoryStore.team_members.filter(u => u.user_id !== userId && u.member_user_id !== userId);
+    memoryStore.team_invites = memoryStore.team_invites.filter(u => u.invited_user_id !== userId && u.invited_by !== userId);
+    memoryStore.player_stats = memoryStore.player_stats.filter(u => u.user_id !== userId);
+    memoryStore.notifications = memoryStore.notifications.filter(u => u.user_id !== userId);
+    memoryStore.direct_messages = memoryStore.direct_messages.filter(u => u.sender_id !== userId && u.recipient_id !== userId);
+    const ownedTeams = memoryStore.teams.filter(t => t.owner_user_id === userId);
+    for (const ot of ownedTeams) {
+      memoryStore.teams = memoryStore.teams.filter(t => t.id !== ot.id);
+      memoryStore.matches.forEach(m => {
+        if (m.team_a_id === ot.id) m.team_a_id = null;
+        if (m.team_b_id === ot.id) m.team_b_id = null;
+      });
+    }
+    return { rows: beforeCount > memoryStore.users.length ? [{ id: userId }] : [] };
+  }
+
   // --- NOTIFICATIONS ---
   if (normalizedText.includes('insert into notifications')) {
     let user_id, type, title, message, announcement_id;

@@ -4,9 +4,12 @@ import { Alert } from '../components/Alert';
 import { getAuthHeaders } from '../utils/authFetch';
 
 export const Dashboard = ({ onNavigate }) => {
-  const { user, token, fetchProfile } = useAuth();
+  const { user, token, fetchProfile, deleteAccount } = useAuth();
   const [adminTestStatus, setAdminTestStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   if (!user) {
     return (
@@ -16,6 +19,19 @@ export const Dashboard = ({ onNavigate }) => {
       </div>
     );
   }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteAccount();
+      if (onNavigate) onNavigate('signup');
+    } catch (err) {
+      setDeleteError(err.message || 'Failed to delete account');
+      setDeleting(false);
+    }
+  };
+
 
   // Get initials for avatar
   const initials = user.name
@@ -196,6 +212,93 @@ export const Dashboard = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* Danger Zone: Permanent Account Deletion */}
+      <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(255, 77, 77, 0.2)', paddingTop: '1.5rem' }}>
+        <div style={{ background: 'rgba(255, 68, 68, 0.05)', border: '1px solid rgba(255, 68, 68, 0.25)', borderRadius: '12px', padding: '1.25rem' }}>
+          <h4 style={{ color: '#ff4d4d', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem' }}>
+            ⚠️ Danger Zone — Permanent Account Deletion
+          </h4>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5', margin: '0 0 1rem 0' }}>
+            <strong>Note:</strong> To simply leave your session on this computer, use <strong>Sign Out</strong> in the top menu. <br />
+            Clicking <strong>Permanently Delete Account</strong> below will completely erase your player profile, team memberships, sports data, and chat history from the tournament database forever.
+          </p>
+          <button 
+            className="btn btn-danger btn-sm"
+            onClick={() => setShowDeleteModal(true)}
+            style={{ width: 'auto' }}
+          >
+            🗑️ Permanently Delete My Account
+          </button>
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {showDeleteModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+          onClick={() => !deleting && setShowDeleteModal(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'var(--bg-card, #121c26)',
+              border: '1px solid rgba(255, 77, 77, 0.4)',
+              borderRadius: '16px',
+              padding: '2rem',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ color: '#ff4d4d', marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🗑️ Delete Account Permanently?
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: '1.6' }}>
+              Are you sure you want to permanently delete the account for <strong>{user.name}</strong> (College ID: <code>{user.college_id}</code>)?
+            </p>
+            <div style={{ background: 'rgba(255, 77, 77, 0.1)', borderLeft: '3px solid #ff4d4d', padding: '0.75rem', borderRadius: '4px', margin: '1rem 0', fontSize: '0.85rem', color: '#ffaaaa' }}>
+              This will permanently wipe all your athlete profiles, squad memberships, and statistics. <strong>This action cannot be undone.</strong>
+            </div>
+
+            {deleteError && (
+              <div style={{ marginBottom: '1rem' }}>
+                <Alert type="error" message={deleteError} />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                style={{ width: 'auto' }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                style={{ width: 'auto' }}
+              >
+                {deleting ? 'Deleting...' : 'Yes, Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

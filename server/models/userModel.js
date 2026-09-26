@@ -107,5 +107,12 @@ export const UserModel = {
       WHERE password_reset_token_hash = $2 AND password_reset_expires > CURRENT_TIMESTAMP
       RETURNING id, name, email, role;`, [passwordHash, tokenHash]);
     return rows[0] || null;
+  },
+
+  async deleteAccount(id) {
+    await query('DELETE FROM admin_audit_log WHERE admin_user_id = $1;', [id]);
+    const { rows } = await query('DELETE FROM users WHERE id = $1 RETURNING id;', [id]);
+    return rows[0] || null;
   }
 };
+

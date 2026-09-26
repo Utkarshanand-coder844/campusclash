@@ -1,5 +1,5 @@
 import express from 'express';
-import { signup, login, getMe, requestPasswordReset, resetPassword } from '../controllers/authController.js';
+import { signup, login, getMe, requestPasswordReset, resetPassword, deleteAccount } from '../controllers/authController.js';
 import { authenticateToken, requireAdmin } from '../middleware/authMiddleware.js';
 import { validateSignup, validateLogin } from '../middleware/validateMiddleware.js';
 import { credentialRateLimit } from '../middleware/rateLimitMiddleware.js';
@@ -14,6 +14,8 @@ router.post('/password-reset/confirm', credentialRateLimit({ max: 5 }), resetPas
 
 // Protected routes (JWT required)
 router.get('/me', authenticateToken, getMe);
+router.delete('/account', authenticateToken, deleteAccount);
+
 
 // Admin-only route for testing and verification
 router.get('/admin-only', authenticateToken, requireAdmin, (req, res) => {

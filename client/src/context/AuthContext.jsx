@@ -92,6 +92,28 @@ export const AuthProvider = ({ children }) => {
     }
   }, []); // Run once on mount
 
+  /**
+   * Permanently delete user account from database and clear local session
+   */
+  const deleteAccount = useCallback(async () => {
+    if (!token) return false;
+    try {
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: getAuthHeaders(token)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete account');
+      }
+      logout();
+      return true;
+    } catch (err) {
+      console.error('Delete account failed:', err);
+      throw err;
+    }
+  }, [token, logout]);
+
   const value = {
     token,
     user,
@@ -99,8 +121,10 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     logout,
+    deleteAccount,
     fetchProfile
   };
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

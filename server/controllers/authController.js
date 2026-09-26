@@ -302,3 +302,33 @@ export const getMe = async (req, res) => {
     });
   }
 };
+
+/**
+ * DELETE /api/auth/account
+ * Permanently delete the user account and cascade delete all associated data
+ */
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const deleted = await UserModel.deleteAccount(userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Account not found or already deleted'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Account permanently deleted from database'
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete account. Please try again.'
+    });
+  }
+};
+
