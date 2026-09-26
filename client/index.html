@@ -58,5 +58,19 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Safety net: show a visible error if React crashes and #root empties
+      window.addEventListener('error', function(e) {
+        var root = document.getElementById('root');
+        if (root && root.children.length === 0) {
+          root.innerHTML = '<div style="max-width:500px;margin:4rem auto;padding:2rem;background:#1a1e29;border:1px solid rgba(255,255,255,0.1);border-radius:16px;text-align:center;color:#fff;font-family:sans-serif">'
+            + '<div style="font-size:3rem;margin-bottom:1rem">⚠️</div>'
+            + '<h2 style="color:#ef4444;margin-bottom:0.75rem">Something went wrong</h2>'
+            + '<p style="color:#94a3b8;margin-bottom:1.5rem">' + (e.message || 'An unexpected error occurred.') + '</p>'
+            + '<button onclick="location.reload()" style="padding:0.6rem 1.5rem;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;cursor:pointer;font-weight:600">🔄 Reload Page</button>'
+            + '</div>';
+        }
+      });
+    </script>
   </body>
 </html>

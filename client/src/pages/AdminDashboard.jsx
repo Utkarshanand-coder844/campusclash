@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
 import { SPORT_LIST, SPORT_ROLES, formatSportProfile } from '../utils/sportRoles';
@@ -74,60 +74,86 @@ export const AdminDashboard = ({ onNavigate }) => {
 
   // Fetch all admin data
   const fetchData = useCallback(async () => {
-    if (!token || !user || user.role !== 'admin') return;
+    if (!token || !user || user.role !== 'admin') {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
+    setErrorMessage('');
     try {
       const headers = getAuthHeaders(token);
 
       const [matchesRes, teamsRes, playersRes, scoresRes, deadlinesRes, auditRes, announcementsRes, sportsAdminsRes] = await Promise.all([
-        fetch('/api/admin/matches', { headers }),
-        fetch('/api/admin/teams', { headers }),
-        fetch('/api/admin/players', { headers }),
-        fetch('/api/admin/scores', { headers }),
-        fetch('/api/admin/registration-deadlines', { headers }),
-        fetch('/api/admin/audit-log?limit=20', { headers }),
-        fetch('/api/announcements', { headers }),
-        fetch('/api/sports-admins', { headers })
+        fetch('/api/admin/matches', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/admin/teams', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/admin/players', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/admin/scores', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/admin/registration-deadlines', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/admin/audit-log?limit=20', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/announcements', { headers }).catch(e => ({ ok: false, error: e })),
+        fetch('/api/sports-admins', { headers }).catch(e => ({ ok: false, error: e }))
       ]);
 
-      const matchesData = await matchesRes.json();
-      const teamsData = await teamsRes.json();
-      const playersData = await playersRes.json();
-      const scoresData = await scoresRes.json();
-      const deadlinesData = await deadlinesRes.json();
-      const auditData = await auditRes.json();
-      const announcementsData = await announcementsRes.json();
-      const sportsAdminsData = await sportsAdminsRes.json();
+      const parseJson = async (res) => {
+        try {
+          if (!res || !res.ok) return { success: false };
+          return await res.json();
+        } catch {
+          return { success: false };
+        }
+      };
 
-      if (matchesRes.ok && matchesData.success) {
-        setMatches(matchesData.matches || []);
+      const [matchesData, teamsData, playersData, scoresData, deadlinesData, auditData, announcementsData, sportsAdminsData] = await Promise.all([
+        parseJson(matchesRes),
+        parseJson(teamsRes),
+        parseJson(playersRes),
+        parseJson(scoresRes),
+        parseJson(deadlinesRes),
+        parseJson(auditRes),
+        parseJson(announcementsRes),
+        parseJson(sportsAdminsRes)
+      ]);
+
+      if (matchesData.success && Array.isArray(matchesData.matches)) {
+        setMatches(matchesData.matches);
         if (matchesData.matches.length > 0 && !selectedMatchId) {
           setSelectedMatchId(matchesData.matches[0].id);
         }
       }
 
-      if (teamsRes.ok && teamsData.success) {
-        setTeams(teamsData.teams || []);
+      if (teamsData.success && Array.isArray(teamsData.teams)) {
+        setTeams(teamsData.teams);
         if (teamsData.teams.length > 0 && !selectedTeamId) {
           setSelectedTeamId(teamsData.teams[0].id);
         }
       }
-      if (playersRes.ok && playersData.success) setPlayers(playersData.players || []);
-
-      if (scoresRes.ok && scoresData.success) {
-        setScores(scoresData.scores || []);
+      if (playersData.success && Array.isArray(playersData.players)) {
+        setPlayers(playersData.players);
       }
-      if (deadlinesRes.ok && deadlinesData.success) setDeadlines(deadlinesData.deadlines || []);
-      if (auditRes.ok && auditData.success) setAuditEntries(auditData.entries || []);
-      if (announcementsRes.ok && announcementsData.success) setAnnouncements(announcementsData.announcements || []);
-      if (sportsAdminsRes.ok && sportsAdminsData.success) setSportsAdmins(sportsAdminsData.admins || []);
+
+      if (scoresData.success && Array.isArray(scoresData.scores)) {
+        setScores(scoresData.scores);
+      }
+      if (deadlinesData.success && Array.isArray(deadlinesData.deadlines)) {
+        setDeadlines(deadlinesData.deadlines);
+      }
+      if (auditData.success && Array.isArray(auditData.entries)) {
+        setAuditEntries(auditData.entries);
+      }
+      if (announcementsData.success && Array.isArray(announcementsData.announcements)) {
+        setAnnouncements(announcementsData.announcements);
+      }
+      if (sportsAdminsData.success && Array.isArray(sportsAdminsData.admins)) {
+        setSportsAdmins(sportsAdminsData.admins);
+      }
     } catch (err) {
+      console.error('Error fetching admin data:', err);
       setErrorMessage('Failed to load admin data: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, [token, user, selectedMatchId, selectedTeamId]);
+  }, [token, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchData();
@@ -356,7 +382,8 @@ export const AdminDashboard = ({ onNavigate }) => {
   })();
 
   // Filtered players list
-  const filteredPlayers = players.filter((p) => {
+  const filteredPlayers = (Array.isArray(players) ? players : []).filter((p) => {
+    if (!p) return false;
     if (playerSearchQuery.trim()) {
       const q = playerSearchQuery.trim().toLowerCase();
       const matchText =
@@ -384,9 +411,11 @@ export const AdminDashboard = ({ onNavigate }) => {
     } else if (playerRoleFilter !== 'All') {
       const hasAnyRoleMatch = Object.values(p.sport_profiles || {}).some(
         (prof) =>
-          prof.primary_role === playerRoleFilter ||
-          prof.position === playerRoleFilter ||
-          prof.event_category === playerRoleFilter
+          prof && (
+            prof.primary_role === playerRoleFilter ||
+            prof.position === playerRoleFilter ||
+            prof.event_category === playerRoleFilter
+          )
       );
       if (!hasAnyRoleMatch) return false;
     }
@@ -394,8 +423,29 @@ export const AdminDashboard = ({ onNavigate }) => {
     return true;
   });
 
+  if (loading) {
+    return (
+      <div className="dashboard-container" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🛡️</div>
+        <h2 style={{ color: 'var(--text-secondary)' }}>Loading Admin Desk…</h2>
+        <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Fetching tournament data, please wait.</p>
+      </div>
+    );
+  }
+
   if (!user || user.role !== 'admin') {
-    return null; // Will redirect in useEffect
+    return (
+      <div className="auth-card" style={{ textAlign: 'center', margin: '3rem auto', maxWidth: '500px' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚫</div>
+        <h2 style={{ color: 'var(--danger, #ef4444)' }}>Administrator Access Required</h2>
+        <p style={{ margin: '1rem 0', color: 'var(--text-secondary)' }}>
+          You must be signed in with an administrator account to view the tournament control desk.
+        </p>
+        <button className="btn btn-primary" onClick={() => onNavigate && onNavigate('dashboard')}>
+          Back to Dashboard
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -502,7 +552,7 @@ export const AdminDashboard = ({ onNavigate }) => {
           )}
           <button className="btn btn-primary btn-sm" type="submit">Add sport</button>
         </form>
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.85rem' }}>{sportsAdmins.filter(item => item.admin_id === user.id).map(item => <span key={item.id} className="role-pill admin">{item.sport} <button type="button" onClick={() => handleRemoveMySport(item.sport)} aria-label={`Remove ${item.sport}`} style={{ marginLeft: '0.35rem', border: 0, cursor: 'pointer', background: 'transparent', color: 'inherit' }}>×</button></span>)}</div>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.85rem' }}>{(Array.isArray(sportsAdmins) ? sportsAdmins : []).filter(item => item && user && item.admin_id === (user.id || user.userId)).map(item => <span key={item.id} className="role-pill admin">{item.sport} <button type="button" onClick={() => handleRemoveMySport(item.sport)} aria-label={`Remove ${item.sport}`} style={{ marginLeft: '0.35rem', border: 0, cursor: 'pointer', background: 'transparent', color: 'inherit' }}>×</button></span>)}</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -626,7 +676,7 @@ export const AdminDashboard = ({ onNavigate }) => {
                 <option value="" disabled>-- Choose Match --</option>
                 {matches.map(m => (
                   <option key={m.id} value={m.id}>
-                    {m.team_a_name && m.team_b_name ? `${m.team_a_name} vs ${m.team_b_name}` : m.name} ({m.status.toUpperCase()})
+                    {m.team_a_name && m.team_b_name ? `${m.team_a_name} vs ${m.team_b_name}` : m.name} ({(m.status || 'upcoming').toUpperCase()})
                   </option>
                 ))}
               </select>
@@ -1063,9 +1113,9 @@ export const AdminDashboard = ({ onNavigate }) => {
         <h3 style={{ marginBottom: '0.8rem', fontSize: '1.2rem', color: 'var(--text-secondary)' }}>ADMIN AUDIT LOG</h3>
         <div className="auth-card" style={{ maxWidth: '100%' }}>
           {auditEntries.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No administrative actions recorded yet.</p> : auditEntries.map(entry => (
-            <div key={entry.id} style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
-              <span><strong>{entry.admin_name}</strong> · {entry.action.replaceAll('_', ' ')} · {entry.entity_type}</span>
-              <span style={{ color: 'var(--text-muted)' }}>{new Date(entry.created_at).toLocaleString()}</span>
+            <div key={entry.id || Math.random()} style={{ padding: '0.65rem 0', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+              <span><strong>{entry.admin_name || 'Admin'}</strong> · {(entry.action || '').replaceAll('_', ' ')} · {entry.entity_type || 'action'}</span>
+              <span style={{ color: 'var(--text-muted)' }}>{entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}</span>
             </div>
           ))}
         </div>

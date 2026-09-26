@@ -21,6 +21,7 @@ import { Discover } from './pages/Discover';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import { ScoreToast } from './components/ScoreToast';
 import { CampusClashLoader } from './components/CampusClashLoader';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function MainLayout() {
   const { isAuthenticated } = useAuth();
@@ -51,35 +52,37 @@ function MainLayout() {
       <Navbar currentView={currentView} onViewChange={navigate} />
       <ScoreToast />
       <main className="main-content">
-        {currentView === 'login' && <Login onNavigate={navigate} />}
-        {currentView === 'forgot-password' && <ForgotPassword onNavigate={navigate} />}
-        {currentView === 'signup' && <Signup onNavigate={navigate} />}
-        {currentView === 'leaderboard' && <Leaderboard onNavigate={navigate} />}
-        {currentView === 'schedule' && <Schedule onNavigate={navigate} focusMatchId={initialMatchId} />}
-        {currentView === 'scorehub' && <ScoreHub />}
-        {currentView === 'events' && <Events />}
-        {currentView === 'notifications' && <ProtectedRoute onNavigate={navigate}><Notifications onNavigate={navigate} /></ProtectedRoute>}
-        {currentView === 'sports-admins' && <ProtectedRoute onNavigate={navigate}><SportsAdmins onNavigate={navigate} /></ProtectedRoute>}
-        {currentView === 'my-sports' && <ProtectedRoute onNavigate={navigate}><MySports /></ProtectedRoute>}
-        {currentView === 'chat' && <ProtectedRoute onNavigate={navigate}><Chat playerId={viewParams} /></ProtectedRoute>}
-        {currentView === 'discover' && <ProtectedRoute onNavigate={navigate}><Discover onNavigate={navigate} /></ProtectedRoute>}
-        {currentView === 'team-profile' && <TeamProfile teamId={viewParams} onNavigate={navigate} />}
-        {currentView === 'player-profile' && <PlayerProfile playerId={viewParams} onNavigate={navigate} />}
-        {currentView === 'dashboard' && (
-          <ProtectedRoute onNavigate={navigate}>
-            <Dashboard onNavigate={navigate} />
-          </ProtectedRoute>
-        )}
-        {currentView === 'my-team' && (
-          <ProtectedRoute onNavigate={navigate}>
-            <MyTeam onNavigate={navigate} />
-          </ProtectedRoute>
-        )}
-        {currentView === 'admin-dashboard' && (
-          <AdminRoute onNavigate={navigate}>
-            <AdminDashboard onNavigate={navigate} />
-          </AdminRoute>
-        )}
+        <ErrorBoundary onReset={() => navigate('dashboard')}>
+          {currentView === 'login' && <Login onNavigate={navigate} />}
+          {currentView === 'forgot-password' && <ForgotPassword onNavigate={navigate} />}
+          {currentView === 'signup' && <Signup onNavigate={navigate} />}
+          {currentView === 'leaderboard' && <Leaderboard onNavigate={navigate} />}
+          {currentView === 'schedule' && <Schedule onNavigate={navigate} focusMatchId={initialMatchId} />}
+          {currentView === 'scorehub' && <ScoreHub />}
+          {currentView === 'events' && <Events />}
+          {currentView === 'notifications' && <ProtectedRoute onNavigate={navigate}><Notifications onNavigate={navigate} /></ProtectedRoute>}
+          {currentView === 'sports-admins' && <ProtectedRoute onNavigate={navigate}><SportsAdmins onNavigate={navigate} /></ProtectedRoute>}
+          {currentView === 'my-sports' && <ProtectedRoute onNavigate={navigate}><MySports /></ProtectedRoute>}
+          {currentView === 'chat' && <ProtectedRoute onNavigate={navigate}><Chat playerId={viewParams} /></ProtectedRoute>}
+          {currentView === 'discover' && <ProtectedRoute onNavigate={navigate}><Discover onNavigate={navigate} /></ProtectedRoute>}
+          {currentView === 'team-profile' && <TeamProfile teamId={viewParams} onNavigate={navigate} />}
+          {currentView === 'player-profile' && <PlayerProfile playerId={viewParams} onNavigate={navigate} />}
+          {currentView === 'dashboard' && (
+            <ProtectedRoute onNavigate={navigate}>
+              <Dashboard onNavigate={navigate} />
+            </ProtectedRoute>
+          )}
+          {currentView === 'my-team' && (
+            <ProtectedRoute onNavigate={navigate}>
+              <MyTeam onNavigate={navigate} />
+            </ProtectedRoute>
+          )}
+          {currentView === 'admin-dashboard' && (
+            <AdminRoute onNavigate={navigate}>
+              <AdminDashboard onNavigate={navigate} />
+            </AdminRoute>
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );

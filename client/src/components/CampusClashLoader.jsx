@@ -35,7 +35,13 @@ export const CampusClashLoader = ({ isExiting = false }) => {
     if (!isMuted) playSequence();
   }, [isMuted]);
 
-  useEffect(() => () => audioContextRef.current?.close(), []);
+  useEffect(() => () => {
+    try {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+      }
+    } catch {}
+  }, []);
 
   const handleSoundToggle = () => {
     if (isMuted) playSequence(true);
