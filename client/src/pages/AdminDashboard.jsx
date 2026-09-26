@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
 import { SPORT_LIST, SPORT_ROLES, formatSportProfile } from '../utils/sportRoles';
@@ -7,12 +7,8 @@ import { getAuthHeaders } from '../utils/authFetch';
 export const AdminDashboard = ({ onNavigate }) => {
   const { user, token } = useAuth();
 
-  // Redirect if not admin
-  useEffect(() => {
-    if (user && user.role !== 'admin') {
-      onNavigate('dashboard');
-    }
-  }, [user, onNavigate]);
+  // Note: role guard is enforced by AdminRoute in App.jsx before this renders.
+  // No useEffect redirect needed — AdminRoute blocks non-admins synchronously.
 
   // State data
   const [matches, setMatches] = useState([]);

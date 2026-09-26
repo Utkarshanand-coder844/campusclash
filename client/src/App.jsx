@@ -18,7 +18,7 @@ import { SportsAdmins } from './pages/SportsAdmins';
 import { MySports } from './pages/MySports';
 import { Chat } from './pages/Chat';
 import { Discover } from './pages/Discover';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import { ScoreToast } from './components/ScoreToast';
 import { CampusClashLoader } from './components/CampusClashLoader';
 
@@ -76,9 +76,9 @@ function MainLayout() {
           </ProtectedRoute>
         )}
         {currentView === 'admin-dashboard' && (
-          <ProtectedRoute onNavigate={navigate}>
+          <AdminRoute onNavigate={navigate}>
             <AdminDashboard onNavigate={navigate} />
-          </ProtectedRoute>
+          </AdminRoute>
         )}
       </main>
     </div>
