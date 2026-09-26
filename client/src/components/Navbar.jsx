@@ -87,21 +87,22 @@ export const Navbar = ({ currentView, onViewChange }) => {
   return (
     <header className="navbar">
       <div className="nav-brand-area">
-      <div className="brand-logo">
+      <div className="brand-logo" onClick={() => onViewChange('dashboard')} style={{ cursor: 'pointer' }}>
         <button
           type="button"
           className="brand-icon"
-          onClick={() => setIsAboutOpen(true)}
+          onClick={(e) => { e.stopPropagation(); setIsAboutOpen(true); }}
           aria-haspopup="dialog"
           aria-expanded={isAboutOpen}
-          aria-label="Open information about CampusClash"
+          aria-label="Open information about Playr-Pool"
+          style={{ padding: 0, overflow: 'hidden', borderRadius: '50%', width: '42px', height: '42px', border: '2px solid rgba(230, 189, 84, 0.7)', boxShadow: '0 0 12px rgba(230, 189, 84, 0.35)', background: '#0a101d', flexShrink: 0 }}
         >
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-          </svg>
+          <img src="/logo.jpg" alt="Playr-Pool Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </button>
-        <span>Campus<span style={{ color: 'var(--accent-cyan)' }}>Clash</span></span>
-        <span className="brand-badge">SPORTS</span>
+        <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '1.25rem' }}>
+          Playr<span style={{ color: 'var(--accent-cyan, #00f2fe)' }}>-Pool</span>
+        </span>
+        <span className="brand-badge" style={{ background: 'linear-gradient(135deg, rgba(230,189,84,0.2), rgba(0,242,254,0.2))', borderColor: 'rgba(230,189,84,0.4)', color: '#f3c766' }}>SPORTS</span>
       </div>
       </div>
 
@@ -211,19 +212,22 @@ export const Navbar = ({ currentView, onViewChange }) => {
             className="about-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="campusclash-about-title"
+            aria-labelledby="playrpool-about-title"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="about-modal-header">
-              <div>
-                <p className="about-eyebrow">ABOUT CAMPUSCLASH</p>
-                <h2 id="campusclash-about-title">Bringing Campus Sports Together</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <img src="/logo.jpg" alt="Playr-Pool Logo" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(230, 189, 84, 0.7)' }} />
+                <div>
+                  <p className="about-eyebrow">ABOUT PLAYR-POOL</p>
+                  <h2 id="playrpool-about-title">Connect, Play, Conquer</h2>
+                </div>
               </div>
-              <button type="button" className="about-close" onClick={() => setIsAboutOpen(false)} aria-label="Close CampusClash information">Close <span aria-hidden="true">×</span></button>
+              <button type="button" className="about-close" onClick={() => setIsAboutOpen(false)} aria-label="Close Playr-Pool information">Close <span aria-hidden="true">×</span></button>
             </div>
 
             <div className="about-modal-content">
-              <p>CampusClash is a digital sports tournament management platform that makes college sports more organized, interactive, and engaging.</p>
+              <p>Playr-Pool is a digital sports tournament management platform that makes college and outdoor sports more organized, interactive, and engaging.</p>
               <p>Built for the players who have guts to compete and conquer — it brings teams, matches, live scores, and results into one place instead of scattered announcements and manual records.</p>
 
               <div className="about-columns">
@@ -241,7 +245,7 @@ export const Navbar = ({ currentView, onViewChange }) => {
                   <h3>Developer &amp; team</h3>
                   <p><strong>Utkarsh Anand</strong><br />B.Tech, Computer Science &amp; Engineering<br />FET, GKV, Haridwar</p>
                   <p><a href="tel:+918809853489">+91 8809853489</a><br /><a href="mailto:utkarshiit098@gmail.com">utkarshiit098@gmail.com</a></p>
-                  <p>Made with the CampusClash Team: Rishav Raj, Utkarsh Kumar Singh, Priyanshu Raj, Anal Roy, and Shivam.</p>
+                  <p>Made with the Playr-Pool Team: Rishav Raj, Utkarsh Kumar Singh, Priyanshu Raj, Anal Roy, and Shivam.</p>
                 </div>
               </div>
 
@@ -251,7 +255,7 @@ export const Navbar = ({ currentView, onViewChange }) => {
               </div>
 
               <p className="about-signoff"><em>“I don't chase victory. I chase the version of me that deserves it.”</em><br />Have a nice day 🫡🫡</p>
-              <p className="about-signoff">Made with <span aria-label="love">♥</span> for student welfare. <strong>CampusClash - Play. Compete. Conquer.</strong></p>
+              <p className="about-signoff">Made with <span aria-label="love">♥</span> for student welfare. <strong>Playr-Pool - Connect. Play. Conquer.</strong></p>
             </div>
           </section>
         </div>

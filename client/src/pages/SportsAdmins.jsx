@@ -62,7 +62,7 @@ export const SportsAdmins = ({ onNavigate }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h1>🛡️ Sports Administrators</h1>
-            <p>Connect with faculty and staff in charge of tournaments and sports at CampusClash.</p>
+            <p>Connect with faculty and staff in charge of tournaments and sports at Playr-Pool.</p>
           </div>
           {user?.role === 'admin' && onNavigate && (
             <button

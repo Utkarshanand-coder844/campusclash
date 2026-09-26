@@ -43,7 +43,7 @@ export const CampusClashLoader = ({ isExiting = false }) => {
   };
 
   return (
-    <div className={`campusclash-loader ${isExiting ? 'is-exiting' : ''}`} role="status" aria-live="polite" aria-label="Loading CampusClash">
+    <div className={`campusclash-loader ${isExiting ? 'is-exiting' : ''}`} role="status" aria-live="polite" aria-label="Loading Playr-Pool">
       <button type="button" className="loader-sound" onClick={handleSoundToggle} aria-pressed={!isMuted}>
         {isMuted ? '🔇 Sound off' : '🔊 Sound on'}
       </button>
@@ -52,8 +52,11 @@ export const CampusClashLoader = ({ isExiting = false }) => {
       </div>
       <div className="loader-trail loader-trail-one" aria-hidden="true" />
       <div className="loader-trail loader-trail-two" aria-hidden="true" />
-      <div className="loader-mark" aria-hidden="true"><span>CC</span></div>
-      <h1>Campus<span>Clash</span></h1>
+      <div className="loader-mark" aria-hidden="true" style={{ overflow: 'hidden', padding: 0, borderRadius: '50%', border: '2px solid rgba(230, 189, 84, 0.75)', boxShadow: '0 0 25px rgba(230, 189, 84, 0.45)' }}>
+        <img src="/logo.jpg" alt="Playr-Pool" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+      <h1>Playr<span>-Pool</span></h1>
+      <p style={{ color: 'var(--text-secondary, #94a3b8)', letterSpacing: '0.15em', fontSize: '0.8rem', textTransform: 'uppercase', marginTop: '-0.3rem', marginBottom: '0.5rem', fontWeight: 600 }}>Connect · Play · Conquer</p>
       <div className="loader-progress" aria-label="Loading progress" aria-valuetext="Loading complete" />
     </div>
   );

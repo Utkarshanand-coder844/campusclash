@@ -32,8 +32,8 @@ const sendResetEmail = async ({ email, name, resetUrl }) => {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: 'Reset your CampusClash password',
-      text: `Hi ${name},\n\nUse this link to reset your CampusClash password. It expires in one hour:\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`
+      subject: 'Reset your Playr-Pool password',
+      text: `Hi ${name},\n\nUse this link to reset your Playr-Pool password. It expires in one hour:\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`
     })
   });
   if (!response.ok) throw new Error('Email provider rejected the password-reset message');
@@ -45,7 +45,7 @@ const sendPasswordChangedEmail = async ({ email, name }) => {
   if (!apiKey || !from) return;
   await fetch('https://api.resend.com/emails', {
     method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [email], subject: 'Your CampusClash password was changed', text: `Hi ${name},\n\nYour CampusClash password was changed successfully. Your account role and admin access were not changed.\n\nFor security, this message never includes your password. If you did not make this change, contact the tournament organizer immediately.` })
+    body: JSON.stringify({ from, to: [email], subject: 'Your Playr-Pool password was changed', text: `Hi ${name},\n\nYour Playr-Pool password was changed successfully. Your account role and admin access were not changed.\n\nFor security, this message never includes your password. If you did not make this change, contact the tournament organizer immediately.` })
   });
 };
 

@@ -350,7 +350,7 @@ export const AdminDashboard = ({ onNavigate }) => {
     const quote = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
     const csv = [columns.join(','), ...rows.map(row => columns.map(column => quote(row[column])).join(','))].join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    const link = document.createElement('a'); link.href = url; link.download = `campusclash-${name}-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
+    const link = document.createElement('a'); link.href = url; link.download = `playrpool-${name}-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
   };
 
   // Available roles for dynamic dropdown filter
