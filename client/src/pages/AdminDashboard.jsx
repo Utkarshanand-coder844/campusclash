@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
 import { SPORT_LIST, SPORT_ROLES, formatSportProfile } from '../utils/sportRoles';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const AdminDashboard = ({ onNavigate }) => {
   const { user, token } = useAuth();
@@ -81,7 +82,7 @@ export const AdminDashboard = ({ onNavigate }) => {
 
     setLoading(true);
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const headers = getAuthHeaders(token);
 
       const [matchesRes, teamsRes, playersRes, scoresRes, deadlinesRes, auditRes, announcementsRes, sportsAdminsRes] = await Promise.all([
         fetch('/api/admin/matches', { headers }),
@@ -153,10 +154,7 @@ export const AdminDashboard = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/admin/matches', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           name: newMatchName.trim(),
           sport,
@@ -190,10 +188,7 @@ export const AdminDashboard = ({ onNavigate }) => {
     try {
       const res = await fetch(`/api/admin/matches/${matchId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ status })
       });
 
@@ -227,10 +222,7 @@ export const AdminDashboard = ({ onNavigate }) => {
     try {
       const res = await fetch('/api/admin/scores', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           match_id: selectedMatchId,
           team_id: selectedTeamId,
@@ -264,19 +256,19 @@ export const AdminDashboard = ({ onNavigate }) => {
   const handleSaveDeadline = async (e) => {
     e.preventDefault(); setErrorMessage('');
     try {
-      const res = await fetch('/api/admin/registration-deadlines', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sport: deadlineSport, opens_at: deadlineOpensAt || null, closes_at: deadlineClosesAt || null }) });
+      const res = await fetch('/api/admin/registration-deadlines', { method: 'PUT', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ sport: deadlineSport, opens_at: deadlineOpensAt || null, closes_at: deadlineClosesAt || null }) });
       const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message || 'Unable to save deadline');
       showToast(`Registration window saved for ${data.deadline.sport}`); fetchData();
     } catch (err) { setErrorMessage(err.message); }
   };
 
   const loadBracket = async (sport = bracketSport) => {
-    try { const res = await fetch(`/api/admin/brackets?sport=${encodeURIComponent(sport)}`, { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message); setBracketFixtures(data.fixtures || []); } catch (err) { setErrorMessage(err.message); }
+    try { const res = await fetch(`/api/admin/brackets?sport=${encodeURIComponent(sport)}`, { headers: getAuthHeaders(token) }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message); setBracketFixtures(data.fixtures || []); } catch (err) { setErrorMessage(err.message); }
   };
 
   const handleGenerateBracket = async () => {
     setErrorMessage('');
-    try { const res = await fetch('/api/admin/brackets/generate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sport: bracketSport }) }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message || 'Unable to generate bracket'); showToast(data.message); loadBracket(); fetchData(); } catch (err) { setErrorMessage(err.message); }
+    try { const res = await fetch('/api/admin/brackets/generate', { method: 'POST', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ sport: bracketSport }) }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message || 'Unable to generate bracket'); showToast(data.message); loadBracket(); fetchData(); } catch (err) { setErrorMessage(err.message); }
   };
 
   const handlePostAnnouncement = async (event) => {
@@ -293,7 +285,7 @@ export const AdminDashboard = ({ onNavigate }) => {
           finalAttachments.push({ label, url, type: attachmentType || 'other' });
         }
       }
-      const response = await fetch(editingAnnouncementId ? `/api/admin/announcements/${editingAnnouncementId}` : '/api/admin/announcements', { method: editingAnnouncementId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ title: announcementTitle, message: announcementMessage, category: announcementCategory, event_at: announcementDate || null, is_pinned: announcementPinned, campus: announcementCampus, attachments: finalAttachments }) });
+      const response = await fetch(editingAnnouncementId ? `/api/admin/announcements/${editingAnnouncementId}` : '/api/admin/announcements', { method: editingAnnouncementId ? 'PUT' : 'POST', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ title: announcementTitle, message: announcementMessage, category: announcementCategory, event_at: announcementDate || null, is_pinned: announcementPinned, campus: announcementCampus, attachments: finalAttachments }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to post announcement');
       showToast(editingAnnouncementId ? 'Announcement updated.' : 'Announcement posted to the public Events feed.');
@@ -320,7 +312,7 @@ export const AdminDashboard = ({ onNavigate }) => {
 
   const handleDeleteAnnouncement = async (id) => {
     try {
-      const response = await fetch(`/api/admin/announcements/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`/api/admin/announcements/${id}`, { method: 'DELETE', headers: getAuthHeaders(token) });
       const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.message || 'Unable to remove announcement');
       showToast('Announcement removed.'); fetchData();
     } catch (err) { setErrorMessage(err.message); }
@@ -330,7 +322,7 @@ export const AdminDashboard = ({ onNavigate }) => {
     event.preventDefault(); setErrorMessage('');
     if (!adminSport.trim()) return setErrorMessage('Enter a sport name.');
     try {
-      const response = await fetch('/api/sports-admins/mine', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ sport: adminSport.trim() }) });
+      const response = await fetch('/api/sports-admins/mine', { method: 'POST', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ sport: adminSport.trim() }) });
       const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.message || 'Unable to assign sport');
       showToast(data.message); setAdminSport(''); fetchData();
     } catch (err) { setErrorMessage(err.message); }
@@ -338,7 +330,7 @@ export const AdminDashboard = ({ onNavigate }) => {
 
   const handleRemoveMySport = async (sport) => {
     try {
-      const response = await fetch(`/api/sports-admins/mine/${encodeURIComponent(sport)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`/api/sports-admins/mine/${encodeURIComponent(sport)}`, { method: 'DELETE', headers: getAuthHeaders(token) });
       const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.message || 'Unable to remove sport');
       showToast(data.message); fetchData();
     } catch (err) { setErrorMessage(err.message); }

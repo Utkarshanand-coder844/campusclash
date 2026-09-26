@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
+import { getAuthHeaders } from '../utils/authFetch';
 
 const toTitleCase = (str) =>
   str ? str.replace(/\b\w/g, (c) => c.toUpperCase()) : '';
@@ -18,7 +19,7 @@ export const SportsAdmins = ({ onNavigate }) => {
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    fetch('/api/sports-admins', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('/api/sports-admins', { headers: getAuthHeaders(token) })
       .then(async (response) => ({ response, data: await response.json() }))
       .then(({ response, data }) => {
         if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load sports administrators');

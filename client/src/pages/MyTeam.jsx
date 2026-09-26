@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
 import { formatSportProfile } from '../utils/sportRoles';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const MyTeam = ({ onNavigate }) => {
   const { user, token } = useAuth();
@@ -46,7 +47,7 @@ export const MyTeam = ({ onNavigate }) => {
     setError('');
     try {
       const res = await fetch('/api/teams/mine', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getAuthHeaders(token)
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -79,7 +80,7 @@ export const MyTeam = ({ onNavigate }) => {
     if (!token || !teamId) return;
     setPollLoading(true);
     try {
-      const res = await fetch(`/api/teams/${teamId}/admin-removal-votes`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`/api/teams/${teamId}/admin-removal-votes`, { headers: getAuthHeaders(token) });
       const data = await res.json();
       if (res.ok && data.success) setPollData(data);
     } catch { /* non-fatal */ } finally { setPollLoading(false); }
@@ -95,7 +96,7 @@ export const MyTeam = ({ onNavigate }) => {
     try {
       const res = await fetch(`/api/teams/${team.id}/admin-removal-votes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ target_admin_id: pollData?.admin_id || team.owner_user_id })
       });
       const data = await res.json();
@@ -108,7 +109,7 @@ export const MyTeam = ({ onNavigate }) => {
 
   useEffect(() => {
     if (!token) return;
-    fetch('/api/teams/players', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('/api/teams/players', { headers: getAuthHeaders(token) })
       .then(res => res.json())
       .then(data => { if (data.success) setPlayers(data.players || []); })
       .catch(() => setError('Unable to load registered players.'));
@@ -116,7 +117,7 @@ export const MyTeam = ({ onNavigate }) => {
 
   const fetchInvites = useCallback(async () => {
     if (!token) return;
-    const res = await fetch('/api/teams/invites/mine', { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch('/api/teams/invites/mine', { headers: getAuthHeaders(token) });
     const data = await res.json();
     if (res.ok && data.success) setInvites(data.invites || []);
   }, [token]);
@@ -124,10 +125,10 @@ export const MyTeam = ({ onNavigate }) => {
   useEffect(() => { fetchInvites(); }, [fetchInvites]);
 
   const sendInvite = async () => {
-    if (!invitePlayerId || !team) return;
+    if (!invitePlayerId || !team || !token) return;
     setInviteSending(true); setError(''); setSuccess('');
     try {
-      const res = await fetch(`/api/teams/${team.id}/invites`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ invited_user_id: invitePlayerId }) });
+      const res = await fetch(`/api/teams/${team.id}/invites`, { method: 'POST', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ invited_user_id: invitePlayerId }) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Unable to send invitation');
       setSuccess(data.message); setInvitePlayerId('');
@@ -135,9 +136,10 @@ export const MyTeam = ({ onNavigate }) => {
   };
 
   const respondToInvite = async (id, status) => {
+    if (!token) return;
     setError(''); setSuccess('');
     try {
-      const res = await fetch(`/api/teams/invites/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ status }) });
+      const res = await fetch(`/api/teams/invites/${id}`, { method: 'PUT', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ status }) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Unable to respond');
       setSuccess(data.message); fetchInvites(); fetchTeam();
@@ -145,10 +147,10 @@ export const MyTeam = ({ onNavigate }) => {
   };
 
   const transferOwnership = async () => {
-    if (!team || !newOwnerId || !window.confirm('Transfer team ownership? You will become a regular roster player.')) return;
+    if (!team || !newOwnerId || !token || !window.confirm('Transfer team ownership? You will become a regular roster player.')) return;
     setTransferringOwnership(true); setError(''); setSuccess('');
     try {
-      const res = await fetch(`/api/teams/${team.id}/ownership`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ new_owner_user_id: newOwnerId }) });
+      const res = await fetch(`/api/teams/${team.id}/ownership`, { method: 'PUT', headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }), body: JSON.stringify({ new_owner_user_id: newOwnerId }) });
       const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message || 'Unable to transfer ownership');
       setSuccess(data.message); setNewOwnerId(''); fetchTeam();
     } catch (err) { setError(err.message); } finally { setTransferringOwnership(false); }
@@ -219,14 +221,16 @@ export const MyTeam = ({ onNavigate }) => {
       return;
     }
 
+    if (!token) {
+      setError('You must be signed in to create a team');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/teams', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           name: teamName.trim(),
           sport: selectedSport,
@@ -267,14 +271,16 @@ export const MyTeam = ({ onNavigate }) => {
       return;
     }
 
+    if (!token) {
+      setError('You must be signed in to update a team');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch(`/api/teams/${team.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           name: teamName.trim(),
           members: filteredMembers
@@ -298,13 +304,14 @@ export const MyTeam = ({ onNavigate }) => {
 
   // Admin lock toggle for testing and control
   const handleToggleAdminLock = async () => {
+    if (!token) return;
     setError('');
     setSuccess('');
     const endpoint = tournamentLocked ? '/api/admin/unlock-teams' : '/api/admin/lock-teams';
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' })
       });
       const data = await res.json();
       if (res.ok && data.success) {

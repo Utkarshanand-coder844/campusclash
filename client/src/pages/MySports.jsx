@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
 import { SPORT_LIST, emptyProfile, formatSportProfile } from '../utils/sportRoles';
 import { SportRoleFields } from '../components/SportRoleFields';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const MySports = () => {
   const { token, user } = useAuth();
@@ -19,14 +20,14 @@ export const MySports = () => {
     setLoading(true);
     Promise.all([
       fetch('/api/player-sports/mine', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders(token)
       }).then(async (res) => {
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load sports');
         return data.sports || [];
       }),
       fetch('/api/player-sports/profiles', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders(token)
       }).then(async (res) => {
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load profiles');
@@ -82,10 +83,7 @@ export const MySports = () => {
       // 1. Update registered sports list
       const sportsRes = await fetch('/api/player-sports/mine', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ sports })
       });
       const sportsData = await sportsRes.json();
@@ -105,10 +103,7 @@ export const MySports = () => {
       if (Object.keys(activeProfiles).length > 0) {
         const profRes = await fetch('/api/player-sports/profiles/batch', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
+          headers: getAuthHeaders(token, { 'Content-Type': 'application/json' }),
           body: JSON.stringify({ profiles: activeProfiles })
         });
         const profData = await profRes.json();

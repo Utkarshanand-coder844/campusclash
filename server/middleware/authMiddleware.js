@@ -9,8 +9,20 @@ if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured before starting 
  * Verifies the JWT from the Authorization header and attaches the decoded user to req.user.
  */
 export const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Extract Bearer token
+  const authHeader = req.headers['authorization'] || req.headers['x-authorization'] || req.headers['x-access-token'];
+  let token = null;
+
+  if (authHeader && typeof authHeader === 'string') {
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7).trim();
+    } else {
+      token = authHeader.trim();
+    }
+  }
+
+  if (!token && req.query && typeof req.query.token === 'string') {
+    token = req.query.token.trim();
+  }
 
   if (!token) {
     return res.status(401).json({

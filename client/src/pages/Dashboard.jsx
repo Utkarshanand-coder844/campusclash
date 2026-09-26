@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const Dashboard = ({ onNavigate }) => {
   const { user, token, fetchProfile } = useAuth();
@@ -26,7 +27,7 @@ export const Dashboard = ({ onNavigate }) => {
     setAdminTestStatus(null);
     try {
       const res = await fetch('/api/auth/admin-only', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getAuthHeaders(token)
       });
       const data = await res.json();
       if (res.ok && data.success) {

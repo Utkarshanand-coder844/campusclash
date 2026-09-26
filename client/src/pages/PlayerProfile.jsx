@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert } from '../components/Alert';
 import { useAuth } from '../context/AuthContext';
 import { formatSportProfile } from '../utils/sportRoles';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const PlayerProfile = ({ playerId, onNavigate }) => {
   const { token, user } = useAuth();
@@ -15,7 +16,7 @@ export const PlayerProfile = ({ playerId, onNavigate }) => {
 
     setLoading(true);
     fetch(`/api/teams/players/${playerId}`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: getAuthHeaders(token)
     })
       .then(async (res) => ({ res, data: await res.json() }))
       .then(({ res, data }) => {

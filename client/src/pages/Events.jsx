@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { Alert } from '../components/Alert';
 import { useAuth } from '../context/AuthContext';
+import { getAuthHeaders } from '../utils/authFetch';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
 const categoryLabel = { tournament: '🏆 Tournament', match: '⚽ Match', notice: '📣 Notice' };
@@ -16,7 +17,7 @@ export const Events = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const response = await fetch('/api/announcements', { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch('/api/announcements', { headers: getAuthHeaders(token) });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load events');
         setAnnouncements(data.announcements || []);

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { MessageToast } from './MessageToast';
+import { getAuthHeaders } from '../utils/authFetch';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
 
@@ -28,7 +29,7 @@ export const Navbar = ({ currentView, onViewChange }) => {
   useEffect(() => {
     if (!token) { setPendingInviteCount(0); return undefined; }
     const loadInvites = async () => {
-      try { const res = await fetch('/api/teams/invites/mine', { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (res.ok && data.success) setPendingInviteCount(data.invites.filter(invite => invite.status === 'pending').length); } catch { /* My Team surfaces connection errors. */ }
+      try { const res = await fetch('/api/teams/invites/mine', { headers: getAuthHeaders(token) }); const data = await res.json(); if (res.ok && data.success) setPendingInviteCount(data.invites.filter(invite => invite.status === 'pending').length); } catch { /* My Team surfaces connection errors. */ }
     };
     loadInvites();
     const interval = window.setInterval(loadInvites, 60000);
@@ -39,7 +40,7 @@ export const Navbar = ({ currentView, onViewChange }) => {
     if (!token) { setUnreadMessageCount(0); return undefined; }
     const loadUnreadMessages = async () => {
       try {
-        const res = await fetch('/api/chat/unread/count', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch('/api/chat/unread/count', { headers: getAuthHeaders(token) });
         const data = await res.json();
         if (res.ok && data.success) setUnreadMessageCount(data.count || 0);
       } catch { /* Ignored */ }
@@ -77,7 +78,7 @@ export const Navbar = ({ currentView, onViewChange }) => {
   useEffect(() => {
     if (!token) { setUnreadNotificationCount(0); return undefined; }
     const loadNotifications = async () => {
-      try { const res = await fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (res.ok && data.success) setUnreadNotificationCount(data.unreadCount || 0); } catch { /* The notification page shows connection errors. */ }
+      try { const res = await fetch('/api/notifications', { headers: getAuthHeaders(token) }); const data = await res.json(); if (res.ok && data.success) setUnreadNotificationCount(data.unreadCount || 0); } catch { /* The notification page shows connection errors. */ }
     };
     loadNotifications();
     const interval = window.setInterval(loadNotifications, 60000);

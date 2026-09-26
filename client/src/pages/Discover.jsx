@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const Discover = ({ onNavigate }) => {
   const { token, user } = useAuth();
   const [query, setQuery] = useState(''); const [sport, setSport] = useState(''); const [type, setType] = useState('');
   const [results, setResults] = useState({ players: [], teams: [], events: [] }); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
-  const search = async () => { if (!token) return; setLoading(true); setError(''); try { const params = new URLSearchParams({ q: query, sport, type }); const res = await fetch(`/api/teams/discover?${params}`, { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message); setResults(data); } catch (err) { setError(err.message); } finally { setLoading(false); } };
+  const search = async () => { if (!token) return; setLoading(true); setError(''); try { const params = new URLSearchParams({ q: query, sport, type }); const res = await fetch(`/api/teams/discover?${params}`, { headers: getAuthHeaders(token) }); const data = await res.json(); if (!res.ok || !data.success) throw new Error(data.message); setResults(data); } catch (err) { setError(err.message); } finally { setLoading(false); } };
   useEffect(() => { search(); }, [token]); // Initial results are prioritized for the signed-in campus.
   return <div className="dashboard-container" style={{ maxWidth: '1000px' }}>
     <div className="auth-header" style={{ textAlign: 'left' }}><h1>🔎 Campus Discovery</h1><p>Find players, teams, sports, and events. Results prioritize {user?.campus || 'your campus'}.</p></div>

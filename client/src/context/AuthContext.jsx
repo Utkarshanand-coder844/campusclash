@@ -1,31 +1,58 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { getAuthHeaders } from '../utils/authFetch';
 
 const AuthContext = createContext(null);
 
+const TOKEN_KEY = 'playrpool_auth_token';
+const USER_KEY = 'playrpool_auth_user';
+
 export const AuthProvider = ({ children }) => {
-  // In-memory token and user state strictly (no localStorage persistence)
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
+  // Persist token and user across page reloads and tab navigations
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem(TOKEN_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(USER_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * Log in user by storing JWT and user details in memory
+   * Log in user by storing JWT and user details in memory and localStorage
    */
   const login = useCallback((newToken, userData) => {
+    try {
+      if (newToken) localStorage.setItem(TOKEN_KEY, newToken);
+      if (userData) localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    } catch {}
     setToken(newToken);
     setUser(userData);
   }, []);
 
   /**
-   * Log out user by wiping in-memory state
+   * Log out user by wiping in-memory state and localStorage
    */
   const logout = useCallback(() => {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    } catch {}
     setToken(null);
     setUser(null);
   }, []);
 
   /**
-   * Fetch latest profile from backend /api/auth/me using in-memory token
+   * Fetch latest profile from backend /api/auth/me using token
    */
   const fetchProfile = useCallback(async () => {
     if (!token) return null;
@@ -33,18 +60,21 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: getAuthHeaders(token)
       });
 
       const data = await response.json();
       if (response.ok && data.success) {
         setUser(data.user);
+        try {
+          localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        } catch {}
         return data.user;
       } else {
-        // If token is invalid or expired
-        logout();
+        // If token is explicitly rejected (401 / 403), wipe invalid session
+        if (response.status === 401 || response.status === 403) {
+          logout();
+        }
         return null;
       }
     } catch (err) {
@@ -54,6 +84,13 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   }, [token, logout]);
+
+  // Validate session on mount if token is present
+  useEffect(() => {
+    if (token) {
+      fetchProfile();
+    }
+  }, []); // Run once on mount
 
   const value = {
     token,

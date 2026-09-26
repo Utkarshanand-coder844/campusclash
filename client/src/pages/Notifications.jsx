@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from '../components/Alert';
+import { getAuthHeaders } from '../utils/authFetch';
 
 export const Notifications = ({ onNavigate }) => {
   const { token } = useAuth();
@@ -8,8 +9,9 @@ export const Notifications = ({ onNavigate }) => {
   const [error, setError] = useState('');
 
   const loadNotifications = useCallback(async () => {
+    if (!token) return;
     try {
-      const response = await fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch('/api/notifications', { headers: getAuthHeaders(token) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load notifications');
       setNotifications(data.notifications || []);
@@ -19,8 +21,9 @@ export const Notifications = ({ onNavigate }) => {
   useEffect(() => { if (token) loadNotifications(); }, [token, loadNotifications]);
 
   const markRead = async (id) => {
+    if (!token) return;
     try {
-      const response = await fetch(`/api/notifications/${id}/read`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`/api/notifications/${id}/read`, { method: 'PUT', headers: getAuthHeaders(token) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to update notification');
       setNotifications(items => items.map(item => item.id === id ? data.notification : item));
@@ -28,8 +31,9 @@ export const Notifications = ({ onNavigate }) => {
   };
 
   const markAllRead = async () => {
+    if (!token) return;
     try {
-      const response = await fetch('/api/notifications/read-all', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch('/api/notifications/read-all', { method: 'PUT', headers: getAuthHeaders(token) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to update notifications');
       setNotifications(items => items.map(item => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
