@@ -24,7 +24,10 @@ import { CampusClashLoader } from './components/CampusClashLoader';
 
 function MainLayout() {
   const { isAuthenticated } = useAuth();
-  const [currentView, setCurrentView] = useState('login');
+  // Check URL for ?match= deep link on first load
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialMatchId = urlParams.get('match');
+  const [currentView, setCurrentView] = useState(initialMatchId ? 'schedule' : 'login');
   const [viewParams, setViewParams] = useState(null);
 
   // navigate() replaces plain setCurrentView so pages can optionally pass a
@@ -52,7 +55,7 @@ function MainLayout() {
         {currentView === 'forgot-password' && <ForgotPassword onNavigate={navigate} />}
         {currentView === 'signup' && <Signup onNavigate={navigate} />}
         {currentView === 'leaderboard' && <Leaderboard onNavigate={navigate} />}
-        {currentView === 'schedule' && <Schedule onNavigate={navigate} />}
+        {currentView === 'schedule' && <Schedule onNavigate={navigate} focusMatchId={initialMatchId} />}
         {currentView === 'scorehub' && <ScoreHub />}
         {currentView === 'events' && <Events />}
         {currentView === 'notifications' && <ProtectedRoute onNavigate={navigate}><Notifications onNavigate={navigate} /></ProtectedRoute>}

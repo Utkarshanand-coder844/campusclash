@@ -70,6 +70,33 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Dynamic sitemap for match deep links — called by the static sitemap or directly
+app.get('/api/sitemap.xml', async (req, res) => {
+  try {
+    const { MatchModel } = await import('./models/matchModel.js');
+    const matches = await MatchModel.getAllMatches();
+    const siteUrl = process.env.FRONTEND_URL || 'https://playr-pool-two.vercel.app';
+    const today = new Date().toISOString().split('T')[0];
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    // Homepage
+    xml += `  <url>\n    <loc>${siteUrl}/</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+    // Each match gets its own URL
+    for (const m of matches) {
+      const freq = m.status === 'live' ? 'always' : m.status === 'upcoming' ? 'hourly' : 'weekly';
+      const prio = m.status === 'live' ? '0.9' : m.status === 'upcoming' ? '0.7' : '0.5';
+      xml += `  <url>\n    <loc>${siteUrl}/?match=${m.id}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>\n`;
+    }
+    xml += '</urlset>';
+    res.set('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (err) {
+    console.error('Sitemap generation error:', err);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({

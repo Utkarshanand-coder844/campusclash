@@ -1,19 +1,47 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { io } from 'socket.io-client';
 import { Alert } from '../components/Alert';
 
 // Socket.io connects directly to the backend origin — Vite's dev proxy only
 // forwards plain HTTP under /api, not the WebSocket upgrade Socket.io needs.
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+const SITE_URL = 'https://playr-pool-two.vercel.app';
+const DEFAULT_TITLE = 'Playr-Pool — Official Sports Tournament Platform | Connect, Play, Conquer';
 
 const scoreLabel = (score) => (score === null || score === undefined ? '-' : score);
 
-export const Schedule = () => {
+function setMatchSchema(match) {
+  let el = document.getElementById('match-jsonld');
+  if (!el) { el = document.createElement('script'); el.id = 'match-jsonld'; el.type = 'application/ld+json'; document.head.appendChild(el); }
+  const statusMap = { live: 'https://schema.org/EventScheduled', upcoming: 'https://schema.org/EventScheduled', completed: 'https://schema.org/EventCompleted' };
+  el.textContent = JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'SportsEvent',
+    'name': `${match.team_a_name} vs ${match.team_b_name}`,
+    'sport': match.sport || 'Football',
+    'homeTeam': { '@type': 'SportsTeam', 'name': match.team_a_name },
+    'awayTeam': { '@type': 'SportsTeam', 'name': match.team_b_name },
+    'startDate': match.match_date,
+    'eventStatus': statusMap[match.status] || 'https://schema.org/EventScheduled',
+    'description': `${match.team_a_name} ${scoreLabel(match.team_a_score)} - ${scoreLabel(match.team_b_score)} ${match.team_b_name} | ${match.sport || 'Football'} on Playr-Pool`,
+    'url': `${SITE_URL}/?match=${match.id}`,
+    'organizer': { '@type': 'Organization', 'name': 'Playr-Pool', 'url': SITE_URL },
+  });
+}
+
+function removeMatchSchema() {
+  const el = document.getElementById('match-jsonld');
+  if (el) el.remove();
+}
+
+export const Schedule = ({ focusMatchId }) => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [sportFilter, setSportFilter] = useState('All');
+  const [focusedId, setFocusedId] = useState(focusMatchId ? Number(focusMatchId) : null);
+  const [copiedId, setCopiedId] = useState(null);
+  const focusedRef = useRef(null);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -57,10 +85,41 @@ export const Schedule = () => {
       console.warn('Socket connection failed, live match updates disabled:', err);
     }
 
-    return () => {
-      if (socket) socket.disconnect();
-    };
+    return () => { if (socket) socket.disconnect(); };
   }, []);
+
+  // When focusedId changes: update title, inject schema, update URL
+  useEffect(() => {
+    if (!focusedId || matches.length === 0) return;
+    const match = matches.find(m => m.id === focusedId);
+    if (!match) return;
+    const matchName = match.team_a_name && match.team_b_name ? `${match.team_a_name} vs ${match.team_b_name}` : (match.name || 'Match');
+    const scoreStr = match.status !== 'upcoming' && match.team_a_name ? ` (${scoreLabel(match.team_a_score)}-${scoreLabel(match.team_b_score)})` : '';
+    document.title = `${matchName}${scoreStr} | ${match.sport || 'Football'} – Playr-Pool`;
+    if (match.team_a_name && match.team_b_name) setMatchSchema(match);
+    const url = new URL(window.location.href);
+    url.searchParams.set('match', focusedId);
+    window.history.replaceState({}, '', url.toString());
+    setTimeout(() => focusedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    return () => {
+      document.title = DEFAULT_TITLE;
+      removeMatchSchema();
+      const url2 = new URL(window.location.href);
+      url2.searchParams.delete('match');
+      window.history.replaceState({}, '', url2.toString());
+    };
+  }, [focusedId, matches]);
+
+  // Cleanup on unmount
+  useEffect(() => () => { document.title = DEFAULT_TITLE; removeMatchSchema(); }, []);
+
+  const handleCopyLink = (matchId, e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(`${SITE_URL}/?match=${matchId}`).then(() => {
+      setCopiedId(matchId);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
 
   // Matches "Team A" or "Team B" typed alone, or "Team A vs Team B" / "Team A v Team B" typed together
   const filteredMatches = useMemo(() => {
@@ -146,37 +205,62 @@ export const Schedule = () => {
                 {group.label} ({group.matches.length})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {group.matches.map(m => (
-                  <div
-                    key={m.id}
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: group.key === 'live' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '1rem 1.5rem',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '0.75rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
-                        {m.team_a_name && m.team_b_name ? `${m.team_a_name} vs ${m.team_b_name}` : m.name}{' '}
-                        <span className="role-pill player">{m.sport || 'Football'}</span>
-                      </span>
-                      {group.showScore && (m.team_a_name && m.team_b_name) && (
-                        <span style={{ fontWeight: 800, fontSize: '1.3rem', color: group.key === 'live' ? '#ef4444' : 'var(--accent-emerald)' }}>
-                          {scoreLabel(m.team_a_score)} <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>-</span> {scoreLabel(m.team_b_score)}
+                {group.matches.map(m => {
+                  const isFocused = focusedId === m.id;
+                  return (
+                    <div
+                      key={m.id}
+                      ref={isFocused ? focusedRef : null}
+                      onClick={() => setFocusedId(prev => prev === m.id ? null : m.id)}
+                      style={{
+                        background: isFocused ? 'rgba(0,242,254,0.06)' : 'var(--bg-card)',
+                        border: isFocused ? '1px solid rgba(0,242,254,0.5)' : group.key === 'live' ? '1px solid rgba(239,68,68,0.4)' : '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '1rem 1.5rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.2s, background 0.2s',
+                        boxShadow: isFocused ? '0 0 18px rgba(0,242,254,0.12)' : 'none',
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
+                        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
+                          {m.team_a_name && m.team_b_name ? `${m.team_a_name} vs ${m.team_b_name}` : m.name}{' '}
+                          <span className="role-pill player">{m.sport || 'Football'}</span>
                         </span>
-                      )}
+                        {group.showScore && (m.team_a_name && m.team_b_name) && (
+                          <span style={{ fontWeight: 800, fontSize: '1.3rem', color: group.key === 'live' ? '#ef4444' : 'var(--accent-emerald)' }}>
+                            {scoreLabel(m.team_a_score)} <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>-</span> {scoreLabel(m.team_b_score)}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          {new Date(m.match_date).toLocaleString()}
+                        </span>
+                        <button
+                          type="button"
+                          title="Copy shareable link"
+                          onClick={e => handleCopyLink(m.id, e)}
+                          style={{
+                            background: copiedId === m.id ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)',
+                            border: copiedId === m.id ? '1px solid rgba(16,185,129,0.5)' : '1px solid var(--border-subtle)',
+                            borderRadius: '6px',
+                            color: copiedId === m.id ? 'var(--accent-emerald)' : 'var(--text-muted)',
+                            cursor: 'pointer', fontSize: '0.75rem', padding: '0.25rem 0.55rem',
+                            transition: 'all 0.2s', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {copiedId === m.id ? '✓ Copied!' : '🔗 Share'}
+                        </button>
+                      </div>
                     </div>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {new Date(m.match_date).toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
